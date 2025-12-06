@@ -12,7 +12,8 @@ class BytezService:
         from backend.app.core.config import settings
         self.api_key = settings.BYTEZ_API_KEY
         self.model = "anthropic/claude-sonnet-4-5"
-        self.base_url = "https://api.bytez.com/v1"
+        # Correct Bytez API endpoint
+        self.base_url = "https://api.bytez.com/models/v2/openai/v1"
     
     def generate_text(self, prompt: str, temperature: float = 0.7, max_tokens: int = 1024) -> str:
         """
@@ -20,7 +21,7 @@ class BytezService:
         Compatible interface with the old nvidia_service.
         """
         headers = {
-            "Authorization": f"Bearer {self.api_key}",
+            "Authorization": self.api_key,
             "Content-Type": "application/json",
         }
         
@@ -31,6 +32,7 @@ class BytezService:
             ],
             "max_tokens": max_tokens,
             "temperature": temperature,
+            "stream": False,
         }
         
         try:
