@@ -2,7 +2,7 @@
 import json
 import re
 from typing import Dict, List, Any, Optional
-from backend.app.services.nvidia import nvidia_service
+from backend.app.services.bytez import bytez_service
 from backend.app.services.supabase import supabase_service
 from backend.app.models.domain import DirectorOutput
 
@@ -86,7 +86,7 @@ class CortexService:
         }}
         """
 
-        raw_response = nvidia_service.generate_text(system_prompt, temperature=0.4)
+        raw_response = bytez_service.generate_text(system_prompt, temperature=0.4)
         clean_json = re.sub(r"```json|```", "", raw_response).strip()
         
         try:
@@ -131,7 +131,7 @@ class CortexService:
         If the Director said "Reject", be firm.
         If the Director said "Reciprocate", be affectionate.
         """
-        return nvidia_service.generate_text(system_prompt, temperature=0.9)
+        return bytez_service.generate_text(system_prompt, temperature=0.9)
 
     def update_fluid_state(
         self,
