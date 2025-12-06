@@ -1,0 +1,191 @@
+
+import React, { useEffect, useState } from 'react';
+import {
+    View, Text, TouchableOpacity, FlatList, StyleSheet, ActivityIndicator, Alert
+} from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
+import { Ionicons } from '@expo/vector-icons';
+import { NomiService } from '../services/nomi';
+import { useSimulation } from '../core/context';
+import { CONFIG } from '../core/config';
+
+export default function SimulationsScreen({ navigation }) {
+    // Aliasing context methods to match the requested variable names while maintaining compatibility with context.js
+    const { setSimulationId: registerSimulation, logout: clearSimulation } = useSimulation();
+    const [sims, setSims] = useState([]);
+    const [loading, setLoading] = useState(true);
+
+    useEffect(() => {
+        loadSimulations();
+    }, []);
+
+    const loadSimulations = async () => {
+        try {
+            const data = await NomiService.listSimulations();
+            setSims(data);
+        } catch (error) {
+            Alert.alert('Error', 'Could not fetch universes.');
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    const handleSwitch = async (sim) => {
+        // 1. Update Global Context
+        await registerSimulation(sim.id /*, { name: sim.name, avatar: sim.avatar } */);
+        // Note: ensure setSimulationId (login) can handle just ID or if it needs object. 
+        // Context logic was: login = async (id) => { await AsyncStorage.setItem('simulation_id', id); setSimulationId(id); }
+        // It ignores second arg, which is fine for now as we just store ID.
+
+        // 2. Go back to Chat (Context update will trigger re-render of content)
+        navigation.navigate('Chat');
+    };
+
+    const handleNew = async () => {
+        // Clear current context so Navigator sees "No ID" and renders Oracle
+        await clearSimulation();
+        // Navigation happens automatically via AppNavigator logic
+    };
+
+    const renderItem = ({ item }) => {
+        const isBroken = item.status === 'BROKEN';
+        return (
+            <TouchableOpacity
+                style={[styles.card, isBroken && styles.cardBroken]}
+                onPress={() => handleSwitch(item)}
+            >
+                <View style={styles.cardHeader}>
+                    <Text style={[styles.name, isBroken && styles.textBroken]}>{item.name}</Text>
+                    <Text style={[styles.status, isBroken ? styles.statusBroken : styles.statusActive]}>
+                        {isBroken ? 'DISCONNECTED' : 'ACTIVE'}
+                    </Text>
+                </View>
+
+                <Text style={styles.detail}>
+                    Trust Score: <Text style={item.emotional_bank_account < 0 ? styles.negative : styles.positive}>
+                        {item.emotional_bank_account}
+                    </Text>
+                </Text>
+
+                <Text style={styles.id}>ID: {item.id.substring(0, 8)}...</Text>
+            </TouchableOpacity>
+        );
+    };
+
+    return (
+        <SafeAreaView style={styles.container}>
+            <View style={styles.header}>
+                <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
+                    <Ionicons name="arrow-back" size={24} color="#fff" />
+                </TouchableOpacity>
+                <Text style={styles.headerTitle}>YOUR UNIVERSES</Text>
+                <View style={{ width: 24 }} />
+            </View>
+
+            {loading ? (
+                <ActivityIndicator size="large" color="#fff" style={{ marginTop: 50 }} />
+            ) : (
+                <FlatList
+                    data={sims}
+                    renderItem={renderItem}
+                    keyExtractor={item => item.id}
+                    contentContainerStyle={styles.list}
+                    ListEmptyComponent={
+                        <Text style={styles.emptyText}>No active realities found.</Text>
+                    }
+                />
+            )}
+
+            <TouchableOpacity style={styles.fab} onPress={handleNew}>
+                <Ionicons name="add" size={30} color="#000" />
+            </TouchableOpacity>
+        </SafeAreaView>
+    );
+}
+
+const styles = StyleSheet.create({
+    container: {
+        flex: 1,
+        backgroundColor: CONFIG.THEME.BACKGROUND,
+    },
+    header: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'space-between',
+        padding: 20,
+        borderBottomWidth: 1,
+        borderBottomColor: '#222',
+    },
+    headerTitle: {
+        color: '#fff',
+        fontSize: 16,
+        fontWeight: 'bold',
+        letterSpacing: 2,
+    },
+    list: {
+        padding: 20,
+    },
+    card: {
+        backgroundColor: '#1a1a1a',
+        padding: 20,
+        borderRadius: 12,
+        marginBottom: 15,
+        borderWidth: 1,
+        borderColor: '#333',
+    },
+    cardBroken: {
+        borderColor: '#550000',
+        backgroundColor: '#1a0000',
+    },
+    cardHeader: {
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        marginBottom: 10,
+    },
+    name: {
+        color: '#fff',
+        fontSize: 18,
+        fontWeight: 'bold',
+    },
+    textBroken: {
+        color: '#ff4444',
+    },
+    status: {
+        fontSize: 12,
+        fontWeight: 'bold',
+    },
+    statusActive: { color: '#4CAF50' },
+    statusBroken: { color: '#F44336' },
+    detail: {
+        color: '#aaa',
+        marginBottom: 5,
+    },
+    positive: { color: '#4CAF50' },
+    negative: { color: '#F44336' },
+    id: {
+        color: '#444',
+        fontSize: 10,
+        fontFamily: 'monospace',
+    },
+    emptyText: {
+        color: '#666',
+        textAlign: 'center',
+        marginTop: 50,
+    },
+    fab: {
+        position: 'absolute',
+        bottom: 30,
+        right: 30,
+        width: 60,
+        height: 60,
+        borderRadius: 30,
+        backgroundColor: '#fff',
+        alignItems: 'center',
+        justifyContent: 'center',
+        elevation: 5,
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.3,
+        shadowRadius: 3,
+    }
+});

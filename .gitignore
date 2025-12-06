@@ -1,0 +1,22 @@
+# General
+.DS_Store
+.idea/
+.vscode/
+*.swp
+*.log
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+env/
+
+# Node
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Project specific
+GITHUB_UPLOAD_READY/
+.env
