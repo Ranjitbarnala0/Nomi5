@@ -11,15 +11,14 @@ def create_application() -> FastAPI:
         docs_url=f"{settings.API_V1_STR}/docs",
     )
 
-    # CORS: Allow mobile apps and localhost
-    if settings.BACKEND_CORS_ORIGINS:
-        application.add_middleware(
-            CORSMiddleware,
-            allow_origins=[str(origin) for origin in settings.BACKEND_CORS_ORIGINS],
-            allow_credentials=True,
-            allow_methods=["*"],
-            allow_headers=["*"],
-        )
+    # CORS: Allow ALL origins for mobile app compatibility
+    application.add_middleware(
+        CORSMiddleware,
+        allow_origins=["*"],
+        allow_credentials=True,
+        allow_methods=["*"],
+        allow_headers=["*"],
+    )
     
     # REGISTER ALL ROUTERS (The Full Brain)
     # 1. Oracle: The Test (Liminal Space)
