@@ -28,16 +28,6 @@
     "web": {
       "favicon": "./assets/favicon.png"
     },
-    "plugins": [
-      [
-        "expo-navigation-bar",
-        {
-          "position": "absolute",
-          "visibility": "hidden",
-          "behavior": "inset-swipe",
-          "backgroundColor": "#000000"
-        }
-      ]
-    ]
+    "plugins": []
   }
 }

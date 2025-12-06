@@ -5,11 +5,8 @@ class Settings(BaseSettings):
     PROJECT_NAME: str = "Project Nomi"
     API_V1_STR: str = "/api/v1"
     
-    # Google Gemini
-    GEMINI_API_KEY: str
-
-    # NVIDIA API
-    NVIDIA_API_KEY: str
+    # Bytez AI API (Claude Sonnet 4.5)
+    BYTEZ_API_KEY: str
     
     # Supabase
     SUPABASE_URL: str

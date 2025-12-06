@@ -11,9 +11,7 @@ services:
         value: Project Nomi
       - key: API_V1_STR
         value: /api/v1
-      - key: GEMINI_API_KEY
-        sync: false
-      - key: NVIDIA_API_KEY
+      - key: BYTEZ_API_KEY
         sync: false
       - key: SUPABASE_URL
         sync: false

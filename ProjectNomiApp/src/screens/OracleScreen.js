@@ -72,9 +72,6 @@ export default function OracleScreen({ navigation }) {
                         placeholderTextColor="#666"
                         value={response}
                         onChangeText={setResponse}
-                        multiline
-                        maxLength={200}
-                        autoCapitalize="sentences"
                     />
 
                     <TouchableOpacity

@@ -176,7 +176,7 @@ export default function ChatScreen({ navigation }) {
     };
 
     return (
-        <SafeAreaView style={styles.container} edges={['top', 'left', 'right']}>
+        <SafeAreaView style={styles.container}>
             {/* Header */}
             <View style={styles.header}>
                 <View>
@@ -237,7 +237,6 @@ export default function ChatScreen({ navigation }) {
                             placeholderTextColor="#666"
                             value={inputText}
                             onChangeText={setInputText}
-                            multiline
                         />
                         <TouchableOpacity
                             style={[styles.sendButton, !inputText.trim() && styles.disabled]}

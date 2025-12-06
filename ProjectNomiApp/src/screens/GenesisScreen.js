@@ -19,7 +19,7 @@ const TERMINAL_LOGS = [
 
 export default function GenesisScreen({ navigation, route }) {
     const { userVibe } = route.params;
-    const { registerSimulation } = useSimulation();
+    const { setSimulationId } = useSimulation();
     const [logs, setLogs] = useState([]);
     const scrollViewRef = useRef();
 
