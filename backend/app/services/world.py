@@ -2,7 +2,7 @@ import json
 import re
 from datetime import datetime, timedelta
 from typing import Dict, Any, Optional
-from backend.app.services.nvidia import nvidia_service
+from backend.app.services.bytez import bytez_service
 
 class WorldService:
     def get_schedule_state(self, current_time: datetime, persona: Dict[str, Any]) -> Dict[str, Any]:
@@ -109,7 +109,7 @@ class WorldService:
         }}
         """
         
-        raw_response = nvidia_service.generate_text(system_prompt, temperature=0.7)
+        raw_response = bytez_service.generate_text(system_prompt, temperature=0.7)
         clean_json = re.sub(r"```json|```", "", raw_response).strip()
         
         try:
