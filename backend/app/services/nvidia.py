@@ -7,7 +7,7 @@ class NvidiaService:
     def __init__(self):
         # Using NVIDIA API Key from settings
         self.api_key = settings.NVIDIA_API_KEY
-        self.model_name = "meta/llama-3.3-70b-instruct"
+        self.model_name = "nvidia/nemotron-nano-12b-v2-vl"
         self.invoke_url = "https://integrate.api.nvidia.com/v1/chat/completions"
 
     def generate_text(self, prompt: str, temperature: float = 0.7, max_tokens: int = 1024) -> str:
