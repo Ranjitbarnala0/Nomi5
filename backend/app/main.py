@@ -54,4 +54,8 @@ async def root():
 
 @app.get("/health")
 async def health_check():
-    return {"status": "healthy"}
+    return {
+        "status": "healthy", 
+        "version": "v2.1-genesis-fix",
+        "deployed_at": "2024-12-07T23:40:00Z"
+    }
