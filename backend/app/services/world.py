@@ -76,6 +76,12 @@ class WorldService:
         Calculates time elapsed. If > 4 hours, generates narrative bridge.
         """
         
+        # Fix timezone mismatch: make both naive by stripping timezone info
+        if last_interaction_time.tzinfo is not None:
+            last_interaction_time = last_interaction_time.replace(tzinfo=None)
+        if current_time.tzinfo is not None:
+            current_time = current_time.replace(tzinfo=None)
+        
         delta = current_time - last_interaction_time
         hours_elapsed = delta.total_seconds() / 3600
         
