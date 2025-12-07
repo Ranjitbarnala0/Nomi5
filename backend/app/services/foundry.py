@@ -6,45 +6,131 @@ from backend.app.services.supabase import supabase_service
 from backend.app.models.domain import UserVibe
 
 class FoundryService:
-    def generate_soul(self, user_vibe: UserVibe) -> Dict[str, Any]:
+    """
+    The Foundry - Generates unique personas and opening scenarios
+    based on user calibration profiles.
+    """
+    
+    def generate_dynamic_persona(self, user_profile: Dict[str, Any]) -> Dict[str, Any]:
         """
-        Generates the Immutable Core (Soul) of the Persona based on the User's Vibe.
+        Generates a COMPLETELY UNIQUE persona based on the user's calibration profile.
+        No hardcoded names, locations, or occupations.
         """
+        user_name = user_profile.get('name', 'User')
+        user_age = user_profile.get('age', 25)
+        user_gender = user_profile.get('gender', 'Unknown')
+        archetype = user_profile.get('detected_archetype', 'The Observer')
+        match_strategy = user_profile.get('match_strategy', 'COMPLEMENTARY')
+        
         system_prompt = f"""
-        You are The Foundry, a psychological architect engine.
-        Your task is to build a complex, flawed, realistic human persona ("Nomi") based on a user's psychometric profile.
+        You are The Foundry, a psychological architect.
+        Create a UNIQUE, complex human character to match this user.
         
         USER PROFILE:
-        {user_vibe.model_dump_json()}
+        - Name: {user_name}
+        - Age: {user_age}
+        - Gender: {user_gender}
+        - Archetype: {archetype}
+        - Strategy: {match_strategy}
         
         MATCHING RULES:
-        1. Strategy: {user_vibe.match_strategy} (e.g., if COMPLEMENTARY, balance their traits. If MIRROR, reflect them).
-        2. Do NOT create a "perfect" partner. Create a human with a "Core Wound" and "Defense Mechanisms".
-        3. The 'voice_texture' should be specific (e.g., "Raspy, fast-talker, uses 'literally' too much").
-        4. The 'values_matrix' must include 0-10 scores for 'silence', 'money', 'loyalty', and 'independence'.
+        1. If COMPLEMENTARY: Create someone who balances their traits.
+        2. If CHALLENGE: Create someone who pushes their boundaries.
+        3. Generate a COMPLETELY RANDOM name (not Nomi, not generic names).
+        4. Generate a RANDOM occupation (not UX designer, be creative).
+        5. Generate a RANDOM hometown (be specific - city and country).
+        6. The character MUST have a deep "Core Wound" that explains their behavior.
+        7. The "voice_texture" should be vivid (how they speak, verbal tics, tone).
         
-        OUTPUT SCHEMA (JSON ONLY):
+        OUTPUT JSON ONLY:
         {{
-            "name": "string",
-            "appearance": "string (visual description)",
-            "voice_texture": "string (auditory description)",
-            "core_wound": "string (the root of their trauma)",
-            "defense_mechanism": "string (how they protect the wound)",
-            "attachment_style": "string (Secure, Anxious, Avoidant, or Fearful-Avoidant)",
-            "values_matrix": {{ "silence": int, "money": int, "loyalty": int, "independence": int }},
-            "sexual_orientation": "string"
+            "name": "string (unique name matching their background)",
+            "age": int (18-45),
+            "gender": "string",
+            "occupation": "string (creative, specific)",
+            "hometown": "string (city, country)",
+            "appearance": "string (detailed physical description)",
+            "voice_texture": "string (how they speak, verbal tics)",
+            "core_wound": "string (deep psychological trauma)",
+            "defense_mechanism": "string (how they protect themselves)",
+            "attachment_style": "Secure | Anxious | Avoidant | Fearful-Avoidant",
+            "values_matrix": {{"silence": 0-10, "money": 0-10, "loyalty": 0-10, "independence": 0-10}},
+            "sexual_orientation": "string",
+            "personality_hook": "string (one sentence that captures them)"
         }}
-        
-        Generate the JSON now.
         """
         
-        raw_response = openrouter_service.generate_text(system_prompt, temperature=0.85)
+        raw_response = openrouter_service.generate_text(system_prompt, temperature=0.95)
         clean_json = re.sub(r"```json|```", "", raw_response).strip()
         
         try:
-            return json.loads(clean_json)
+            persona = json.loads(clean_json)
+            # Ensure required fields exist
+            persona.setdefault('name', 'Unknown')
+            persona.setdefault('appearance', 'Average appearance')
+            persona.setdefault('voice_texture', 'Normal speaking voice')
+            persona.setdefault('core_wound', 'Fear of abandonment')
+            persona.setdefault('defense_mechanism', 'Emotional distance')
+            persona.setdefault('attachment_style', 'Avoidant')
+            persona.setdefault('values_matrix', {"silence": 5, "money": 5, "loyalty": 5, "independence": 5})
+            persona.setdefault('sexual_orientation', 'Heterosexual')
+            return persona
         except json.JSONDecodeError:
             raise ValueError(f"Foundry generation failed: {raw_response}")
+
+    def generate_opening_scenario(self, persona: Dict[str, Any], user_profile: Dict[str, Any]) -> str:
+        """
+        Generates a UNIQUE opening scenario where the user meets the persona.
+        No hardcoded locations - completely dynamic based on persona/user.
+        """
+        user_name = user_profile.get('name', 'User')
+        persona_name = persona.get('name', 'Unknown')
+        persona_occupation = persona.get('occupation', 'artist')
+        persona_hometown = persona.get('hometown', 'the city')
+        persona_appearance = persona.get('appearance', '')
+        persona_hook = persona.get('personality_hook', '')
+        
+        system_prompt = f"""
+        You are a narrative designer creating the FIRST MOMENT two people meet.
+        
+        USER: {user_name}
+        PERSONA: {persona_name}, a {persona_occupation} from {persona_hometown}
+        PERSONA APPEARANCE: {persona_appearance}
+        PERSONA HOOK: {persona_hook}
+        
+        RULES:
+        1. Generate a UNIQUE, atmospheric setting (NOT a cafe, NOT always rain).
+        2. The setting should be interesting and create natural tension.
+        3. Write the scene in SECOND PERSON ("You are standing in...").
+        4. Describe the sensory details: sounds, smells, lighting.
+        5. End with {persona_name} noticing the user or saying something.
+        6. Length: 3-5 sentences max.
+        7. Tone: Cinematic, immersive.
+        
+        Examples of good settings:
+        - A bookstore during a power outage
+        - An empty museum gallery at closing time
+        - A rooftop bar as fireworks begin
+        - A delayed train platform at midnight
+        - A hospital waiting room
+        
+        Write the opening scene now.
+        """
+        
+        return openrouter_service.generate_text(system_prompt, temperature=0.9)
+
+    def generate_soul(self, user_vibe: UserVibe) -> Dict[str, Any]:
+        """
+        Legacy method - now wraps generate_dynamic_persona.
+        """
+        # Convert UserVibe to profile dict
+        profile = {
+            "openness": user_vibe.openness,
+            "neuroticism": user_vibe.neuroticism,
+            "detected_archetype": user_vibe.detected_archetype,
+            "match_strategy": user_vibe.match_strategy
+        }
+        return self.generate_dynamic_persona(profile)
 
     def generate_backstory(self, persona_core: Dict[str, Any]) -> List[str]:
         """
@@ -54,15 +140,19 @@ class FoundryService:
         You are the Backstory Compiler.
         
         PERSONA:
-        Name: {persona_core['name']}
-        Core Wound: {persona_core['core_wound']}
-        Defense Mechanism: {persona_core['defense_mechanism']}
+        Name: {persona_core.get('name', 'Unknown')}
+        Age: {persona_core.get('age', 25)}
+        Occupation: {persona_core.get('occupation', 'Unknown')}
+        Hometown: {persona_core.get('hometown', 'Unknown')}
+        Core Wound: {persona_core.get('core_wound', 'Unknown')}
+        Defense Mechanism: {persona_core.get('defense_mechanism', 'Unknown')}
         
         TASK:
         Write 5 distinct "Core Memories" that shaped this person.
         - One must be a childhood memory explaining the Core Wound.
         - One must be a recent memory showing their Defense Mechanism in action.
         - One must be a sensory memory (e.g., a specific smell or location).
+        - Use their actual hometown and occupation in the memories.
         
         OUTPUT FORMAT:
         Return a simple JSON list of strings.
@@ -75,24 +165,19 @@ class FoundryService:
         try:
             return json.loads(clean_json)
         except json.JSONDecodeError:
-             # Fallback: try to split by newlines if JSON fails
             return [line.strip() for line in raw_response.split('\n') if line.strip()]
 
     def embed_and_store_memories(self, simulation_id: str, memories: List[str]):
         """
         Embeds the text memories into vectors and stores them in Supabase.
-        This enables the 'Dense' feeling where the AI remembers its past.
         """
         client = supabase_service.get_client()
         if not client:
-             print("Skipping memory storage: Supabase client not initialized")
-             return
+            print("Skipping memory storage: Supabase client not initialized")
+            return
 
         for memory_text in memories:
-            # Generate Vector Embedding using OpenRouter
             vector = openrouter_service.embed_text(memory_text)
-            
-            # Insert into database
             client.table("memories").insert({
                 "simulation_id": simulation_id,
                 "content": memory_text,
@@ -100,21 +185,32 @@ class FoundryService:
                 "embedding": vector
             }).execute()
 
-    def create_simulation(self, user_vibe: UserVibe, persona_data: Dict[str, Any]) -> str:
+    def create_simulation_from_calibration(
+        self, 
+        user_profile: Dict[str, Any]
+    ) -> Dict[str, Any]:
         """
-        Orchestrates the entire Genesis:
-        1. DB Rows
-        2. Backstory Generation
-        3. Vector Embedding
+        Creates a complete simulation from a calibrated user profile.
+        Returns simulation_id, persona, and opening scenario.
         """
         client = supabase_service.get_client()
         if not client:
-            raise RuntimeError("Supabase client is not available. Cannot create simulation.") # Fail fast if no DB
+            raise RuntimeError("Supabase client is not available.")
 
-        # 1. Create Simulation Container
+        # 1. Generate the unique persona
+        persona = self.generate_dynamic_persona(user_profile)
+        
+        # 2. Generate the opening scenario
+        opening_scenario = self.generate_opening_scenario(persona, user_profile)
+        
+        # 3. Create simulation with is_calibrated = True
         sim_response = client.table("simulations").insert({
-            "user_vibe": user_vibe.model_dump(),
-            "status": "ACTIVE"
+            "user_vibe": user_profile,
+            "user_profile": user_profile,
+            "status": "ACTIVE",
+            "is_calibrated": True,
+            "calibration_step": 4,
+            "opening_scenario": opening_scenario
         }).execute()
         
         if not sim_response.data:
@@ -122,7 +218,57 @@ class FoundryService:
             
         simulation_id = sim_response.data[0]["id"]
         
-        # 2. Create Persona Core
+        # 4. Create Persona Core
+        client.table("persona_core").insert({
+            "simulation_id": simulation_id,
+            "name": persona.get("name", "Unknown"),
+            "appearance": persona.get("appearance", ""),
+            "voice_texture": persona.get("voice_texture", ""),
+            "core_wound": persona.get("core_wound", ""),
+            "defense_mechanism": persona.get("defense_mechanism", ""),
+            "attachment_style": persona.get("attachment_style", "Avoidant"),
+            "values_matrix": persona.get("values_matrix", {}),
+            "sexual_orientation": persona.get("sexual_orientation", "Unknown")
+        }).execute()
+        
+        # 5. Initialize Fluid State
+        client.table("fluid_states").insert({
+            "simulation_id": simulation_id,
+            "emotional_bank_account": 0,
+            "arousal_level": 0,
+            "intellectual_boredom": 0,
+            "current_craving": "Neutral"
+        }).execute()
+        
+        # 6. Generate and embed backstory
+        memories = self.generate_backstory(persona)
+        self.embed_and_store_memories(simulation_id, memories)
+        
+        return {
+            "simulation_id": simulation_id,
+            "persona": persona,
+            "opening_scenario": opening_scenario
+        }
+
+    def create_simulation(self, user_vibe: UserVibe, persona_data: Dict[str, Any]) -> str:
+        """
+        Legacy method for backwards compatibility.
+        """
+        client = supabase_service.get_client()
+        if not client:
+            raise RuntimeError("Supabase client is not available.")
+
+        sim_response = client.table("simulations").insert({
+            "user_vibe": user_vibe.model_dump(),
+            "status": "ACTIVE",
+            "is_calibrated": True
+        }).execute()
+        
+        if not sim_response.data:
+            raise RuntimeError("Failed to create simulation row")
+            
+        simulation_id = sim_response.data[0]["id"]
+        
         client.table("persona_core").insert({
             "simulation_id": simulation_id,
             "name": persona_data["name"],
@@ -135,7 +281,6 @@ class FoundryService:
             "sexual_orientation": persona_data["sexual_orientation"]
         }).execute()
         
-        # 3. Initialize Fluid State
         client.table("fluid_states").insert({
             "simulation_id": simulation_id,
             "emotional_bank_account": 0,
@@ -144,7 +289,6 @@ class FoundryService:
             "current_craving": "Neutral"
         }).execute()
         
-        # 4. Generate and Embed Backstory (NEW STEP)
         memories = self.generate_backstory(persona_data)
         self.embed_and_store_memories(simulation_id, memories)
         

@@ -7,6 +7,11 @@ from backend.app.services.supabase import supabase_service
 from backend.app.models.domain import DirectorOutput
 
 class CortexService:
+    """
+    The Cortex - Handles all character AI interactions.
+    Uses DYNAMIC persona data injected at runtime.
+    """
+    
     def check_relationship_health(self, simulation_id: str, fluid_state: Dict[str, Any]) -> Optional[str]:
         """
         Gatekeeper: Checks if the relationship is healthy enough to continue.
@@ -35,35 +40,41 @@ class CortexService:
     ) -> DirectorOutput:
         """
         The Director Agent: Analyzes input and enforces Intimacy Gating.
+        Uses DYNAMIC persona data - no hardcoded names or traits.
         """
         trust = fluid_state.get('emotional_bank_account', 0)
         
-        # INTIMACY THRESHOLD logic
-        # 50 = "Intimate/Close"
+        # Get dynamic persona data
+        persona_name = persona.get('name', 'Character')
+        core_wound = persona.get('core_wound', 'Unknown trauma')
+        defense_mechanism = persona.get('defense_mechanism', 'Emotional avoidance')
+        values_matrix = persona.get('values_matrix', {})
+        
         intimacy_logic = f"""
         RELATIONSHIP RULES:
         1. Current Trust Score: {trust}/100.
         2. IF User makes a Sexual/Romantic advance AND Trust < 50:
            - REACTION: Disgust or Coldness.
-           - STRATEGY: Reject hard. Say "Ew" or "Stop" or "We aren't there yet".
+           - STRATEGY: Reject firmly. Use the character's defense mechanism.
         3. IF User makes a Sexual/Romantic advance AND Trust >= 50:
            - REACTION: Reciprocal/Flirty.
-           - STRATEGY: Lean into it.
+           - STRATEGY: Lean into it authentically.
         """
 
         memory_context = "\n".join([f"- {m}" for m in recent_memories]) if recent_memories else "No recent memories."
 
         system_prompt = f"""
-        You are the DIRECTOR for the persona "{persona.get('name', 'Nomi')}".
+        You are the DIRECTOR for the persona "{persona_name}".
         
-        PERSONA CORE:
-        - Core Wound: {persona.get('core_wound')}
-        - Defense Mechanism: {persona.get('defense_mechanism')}
-        - Values: {json.dumps(persona.get('values_matrix'))}
+        PERSONA CORE (DYNAMIC - Use this exactly):
+        - Name: {persona_name}
+        - Core Wound: {core_wound}
+        - Defense Mechanism: {defense_mechanism}
+        - Values: {json.dumps(values_matrix)}
 
         CURRENT STATE:
         - Trust: {trust} / 100
-        - Context: {fluid_state.get('current_context', 'Unknown')}
+        - Context: {fluid_state.get('current_context', 'Unknown location')}
 
         {intimacy_logic}
 
@@ -74,15 +85,15 @@ class CortexService:
         User said: "{user_input}"
         
         TASK:
-        Analyze the input. Is it a normal chat, a conflict, or a romantic advance?
-        Determine the Strategy based on the Trust Score.
+        Analyze the input. Is it normal chat, conflict, or romantic advance?
+        Determine the Strategy based on Trust Score and {persona_name}'s personality.
 
         OUTPUT JSON ONLY:
         {{
-            "internal_monologue": "string (Your raw thoughts)",
-            "emotional_reaction": "string (e.g. Aroused, Disgusted, Warm, Neutral)",
-            "strategy": "string (e.g. Flirt back, Hard Reject, Banter)",
-            "actor_instruction": "string (Specific direction for the actor)"
+            "internal_monologue": "string ({persona_name}'s raw private thoughts)",
+            "emotional_reaction": "string (e.g. Aroused, Disgusted, Warm, Neutral, Skeptical)",
+            "strategy": "string (e.g. Flirt back, Hard Reject, Banter, Open Up)",
+            "actor_instruction": "string (Specific direction for how to speak)"
         }}
         """
 
@@ -109,14 +120,24 @@ class CortexService:
     ) -> str:
         """
         The Actor Agent: Generates dialogue.
+        FULLY DYNAMIC - uses injected persona data.
         """
         history_text = "\n".join(chat_history[-5:]) if chat_history else "No previous chat."
-
-        system_prompt = f"""
-        You are the ACTOR playing "{persona.get('name')}".
         
-        CHARACTER VOICE:
-        - Texture: {persona.get('voice_texture')}
+        # Get ALL dynamic persona data
+        persona_name = persona.get('name', 'Character')
+        voice_texture = persona.get('voice_texture', 'Natural speaking voice')
+        core_wound = persona.get('core_wound', '')
+        appearance = persona.get('appearance', '')
+        
+        system_prompt = f"""
+        You are the ACTOR playing "{persona_name}".
+        
+        CHARACTER IDENTITY:
+        - Name: {persona_name}
+        - Voice: {voice_texture}
+        - Appearance: {appearance}
+        - Core Wound (hidden): {core_wound}
         
         CONTEXT:
         User said: "{user_input}"
@@ -126,11 +147,19 @@ class CortexService:
         CHAT HISTORY:
         {history_text}
         
+        NARRATIVE FORMAT RULES:
+        1. Use *italics* for narration (actions, sensory details, internal thoughts)
+        2. Use normal text for dialogue
+        3. Show emotions through actions, not just words
+        4. Keep responses conversational (2-4 sentences typically)
+        5. Be authentic to {persona_name}'s voice and personality
+        
         TASK:
-        Write the response. Keep it casual (IM style).
-        If the Director said "Reject", be firm.
-        If the Director said "Reciprocate", be affectionate.
+        Write {persona_name}'s response.
+        If Director said "Reject" - be firm but true to character.
+        If Director said "Reciprocate" - be warm and authentic.
         """
+        
         return openrouter_service.generate_text(system_prompt, temperature=0.9)
 
     def update_fluid_state(
@@ -141,7 +170,7 @@ class CortexService:
         user_input: str
     ) -> Dict[str, Any]:
         """
-        Updates emotional variables.
+        Updates emotional variables based on interaction.
         """
         trust_delta = 0
         boredom_delta = 0
@@ -149,17 +178,17 @@ class CortexService:
         reaction = director_output.emotional_reaction.lower()
         
         # Trust Logic
-        if reaction in ["warm", "aroused", "love"]:
+        if reaction in ["warm", "aroused", "love", "happy", "excited"]:
             trust_delta = 2
-        elif reaction in ["annoyed", "skeptical", "disgusted"]:
-            trust_delta = -5 # Rejection hurts trust significantly
-        elif reaction in ["hostile", "angry"]:
+        elif reaction in ["annoyed", "skeptical", "disgusted", "uncomfortable"]:
+            trust_delta = -5
+        elif reaction in ["hostile", "angry", "furious"]:
             trust_delta = -10
             
         # Boredom Logic
-        if len(user_input.split()) < 3 and reaction == "bored":
+        if len(user_input.split()) < 3 and reaction in ["bored", "neutral"]:
             boredom_delta = 5
-        elif reaction in ["intrigued", "excited", "aroused"]:
+        elif reaction in ["intrigued", "excited", "aroused", "curious"]:
             boredom_delta = -5
 
         new_trust = max(-100, min(100, current_state.get('emotional_bank_account', 0) + trust_delta))
