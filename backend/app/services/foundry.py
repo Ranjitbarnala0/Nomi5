@@ -239,36 +239,51 @@ class FoundryService:
             raise RuntimeError("Supabase client is not available.")
 
         # 1. Generate the unique persona
+        print(f"[GENESIS] Generating persona for simulation {simulation_id}")
         persona = self.generate_dynamic_persona(user_profile)
+        print(f"[GENESIS] Persona generated: {persona.get('name', 'Unknown')}")
         
         # 2. Generate the opening scenario
         opening_scenario = self.generate_opening_scenario(persona, user_profile)
+        print(f"[GENESIS] Opening scenario generated")
         
-        # 3. Create Persona Core for this simulation
-        client.table("persona_core").insert({
-            "simulation_id": simulation_id,
-            "name": persona.get("name", "Unknown"),
-            "appearance": persona.get("appearance", ""),
-            "voice_texture": persona.get("voice_texture", ""),
-            "core_wound": persona.get("core_wound", ""),
-            "defense_mechanism": persona.get("defense_mechanism", ""),
-            "attachment_style": persona.get("attachment_style", "Avoidant"),
-            "values_matrix": persona.get("values_matrix", {}),
-            "sexual_orientation": persona.get("sexual_orientation", "Unknown")
-        }).execute()
+        try:
+            # 3. Create Persona Core for this simulation
+            print(f"[GENESIS] Inserting persona_core for {simulation_id}")
+            persona_result = client.table("persona_core").insert({
+                "simulation_id": simulation_id,
+                "name": persona.get("name", "Unknown"),
+                "appearance": persona.get("appearance", ""),
+                "voice_texture": persona.get("voice_texture", ""),
+                "core_wound": persona.get("core_wound", ""),
+                "defense_mechanism": persona.get("defense_mechanism", ""),
+                "attachment_style": persona.get("attachment_style", "Avoidant"),
+                "values_matrix": persona.get("values_matrix", {}),
+                "sexual_orientation": persona.get("sexual_orientation", "Unknown")
+            }).execute()
+            print(f"[GENESIS] persona_core insert result: {persona_result.data}")
+            
+            # 4. Initialize Fluid State
+            print(f"[GENESIS] Inserting fluid_states for {simulation_id}")
+            fluid_result = client.table("fluid_states").insert({
+                "simulation_id": simulation_id,
+                "emotional_bank_account": 0,
+                "arousal_level": 0,
+                "intellectual_boredom": 0,
+                "current_craving": "Neutral"
+            }).execute()
+            print(f"[GENESIS] fluid_states insert result: {fluid_result.data}")
+            
+        except Exception as e:
+            print(f"[GENESIS ERROR] Failed to insert records: {str(e)}")
+            raise RuntimeError(f"Failed to persist persona data: {str(e)}")
         
-        # 4. Initialize Fluid State
-        client.table("fluid_states").insert({
-            "simulation_id": simulation_id,
-            "emotional_bank_account": 0,
-            "arousal_level": 0,
-            "intellectual_boredom": 0,
-            "current_craving": "Neutral"
-        }).execute()
-        
-        # 5. Generate and embed backstory
-        memories = self.generate_backstory(persona)
-        self.embed_and_store_memories(simulation_id, memories)
+        # 5. Generate and embed backstory (non-critical)
+        try:
+            memories = self.generate_backstory(persona)
+            self.embed_and_store_memories(simulation_id, memories)
+        except Exception as e:
+            print(f"[GENESIS WARNING] Backstory failed: {str(e)}")
         
         return {
             "simulation_id": simulation_id,
