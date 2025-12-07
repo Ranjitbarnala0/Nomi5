@@ -2,13 +2,16 @@
 import axios from 'axios';
 import { API_URL } from '../core/config';
 
+// DEBUG: Log the API URL on startup
+console.log('API_URL configured as:', API_URL);
+
 /**
  * Core API Client
  * Configures the connection to the Python Backend.
  */
 const apiClient = axios.create({
     baseURL: API_URL,
-    timeout: 10000, // 10 seconds timeout
+    timeout: 120000, // 120 seconds timeout (AI generation can be very slow)
     headers: {
         'Content-Type': 'application/json',
         'Accept': 'application/json',

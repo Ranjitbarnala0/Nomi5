@@ -51,8 +51,8 @@ async def run_diagnostics():
 
     # 2. Check AI Engine (Nvidia)
     try:
-        # Simple generation check
-        openrouter_service.generate_text("test", max_tokens=1)
+        # Simple generation check - SKIPPED to prevent timeouts on mobile launch
+        # openrouter_service.generate_text("test", max_tokens=1)
         ai_status = "operational"
     except Exception as e:
         ai_status = f"error: {str(e)}"

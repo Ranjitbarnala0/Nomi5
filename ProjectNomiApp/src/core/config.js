@@ -3,18 +3,18 @@
 // PRODUCTION - Render Cloud Backend
 const CLOUD_URL = 'https://nomi5-1.onrender.com';
 
-// LOCAL TESTING - Uncomment to use local backend
+// LOCAL TESTING - Point to localhost backend
 // const LOCAL_URL = 'http://192.168.1.205:10000';
 
 const getBaseUrl = () => {
-    // Using Render Cloud Backend
-    return `${CLOUD_URL}/api/v1`;
-
-    // Uncomment below for local testing:
-    // return `${LOCAL_URL}/api/v1`;
+    // Connect to Render Cloud Backend
+    const url = `${CLOUD_URL}/api/v1`;
+    console.log('[CONFIG] Base URL:', url);
+    return url;
 };
 
 export const API_URL = getBaseUrl();
+console.log('[CONFIG] Using API_URL:', API_URL);
 
 export const CONFIG = {
     APP_NAME: 'Nomi',

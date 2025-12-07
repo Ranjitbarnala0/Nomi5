@@ -94,8 +94,21 @@ export default function GenesisScreen({ navigation, route }) {
             }, 1500);
 
         } catch (error) {
-            console.error(error);
-            Alert.alert("Genesis Failed", "The System refused the connection.", [
+            console.error('Genesis Error Details:', error);
+            console.error('Error message:', error.message);
+            console.error('Error response:', error.response?.data);
+            console.error('Error status:', error.response?.status);
+
+            let errorMessage = "The System refused the connection.";
+            if (error.response) {
+                errorMessage = `Server Error (${error.response.status}): ${JSON.stringify(error.response.data)}`;
+            } else if (error.code === 'ECONNABORTED') {
+                errorMessage = "Request timed out. The AI is taking too long.";
+            } else if (error.message) {
+                errorMessage = error.message;
+            }
+
+            Alert.alert("Genesis Failed", errorMessage, [
                 { text: "Retry", onPress: () => navigation.replace('Oracle') }
             ]);
         }
