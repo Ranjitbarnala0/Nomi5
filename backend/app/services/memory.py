@@ -1,26 +1,18 @@
 
-import google.generativeai as genai
 from typing import List, Dict, Any
-from backend.app.core.config import settings
+from backend.app.services.openrouter import openrouter_service
 from backend.app.services.supabase import supabase_service
 
 class MemoryService:
     def __init__(self):
-        # Configure specifically for embedding if not already globally set
-        genai.configure(api_key=settings.GEMINI_API_KEY)
-        self.model_name = "models/text-embedding-004"
+        pass  # No initialization needed, using openrouter_service singleton
 
     def get_embedding(self, text: str) -> List[float]:
         """
         Generates a 768-dimensional vector for the given text.
         """
         try:
-            result = genai.embed_content(
-                model=self.model_name,
-                content=text,
-                task_type="retrieval_query"
-            )
-            return result['embedding']
+            return openrouter_service.embed_text(text)
         except Exception as e:
             print(f"Embedding Error: {e}")
             return []

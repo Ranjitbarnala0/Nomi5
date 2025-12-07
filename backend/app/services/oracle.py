@@ -1,7 +1,7 @@
 import json
 import re
 from typing import Dict, Any
-from backend.app.services.bytez import bytez_service
+from backend.app.services.openrouter import openrouter_service
 
 class OracleService:
     def generate_liminal_scene(self) -> str:
@@ -23,7 +23,7 @@ class OracleService:
         
         Generate the scene now.
         """
-        return bytez_service.generate_text(system_prompt, temperature=0.8)
+        return openrouter_service.generate_text(system_prompt, temperature=0.8)
 
     def analyze_reaction(self, scenario: str, user_reaction: str) -> Dict[str, Any]:
         """
@@ -63,9 +63,9 @@ class OracleService:
         }}
         """
         
-        raw_response = bytez_service.generate_text(system_prompt, temperature=0.2)
+        raw_response = openrouter_service.generate_text(system_prompt, temperature=0.2)
         
-        # Clean response if Gemini adds markdown code blocks
+        # Clean response if AI adds markdown code blocks
         clean_json = re.sub(r"```json|```", "", raw_response).strip()
         
         try:

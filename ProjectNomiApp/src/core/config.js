@@ -1,11 +1,17 @@
 // src/core/config.js
 
-// This is the URL from your screenshot
+// PRODUCTION - Render Cloud Backend
 const CLOUD_URL = 'https://nomi5-1.onrender.com';
 
+// LOCAL TESTING - Uncomment to use local backend
+// const LOCAL_URL = 'http://192.168.1.205:10000';
+
 const getBaseUrl = () => {
-    // This tells the App: "Connect to the Cloud Brain, not the laptop."
+    // Using Render Cloud Backend
     return `${CLOUD_URL}/api/v1`;
+
+    // Uncomment below for local testing:
+    // return `${LOCAL_URL}/api/v1`;
 };
 
 export const API_URL = getBaseUrl();

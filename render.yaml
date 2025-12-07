@@ -11,7 +11,7 @@ services:
         value: Project Nomi
       - key: API_V1_STR
         value: /api/v1
-      - key: BYTEZ_API_KEY
+      - key: OPENROUTER_API_KEY
         sync: false
       - key: SUPABASE_URL
         sync: false

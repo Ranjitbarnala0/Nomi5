@@ -1,7 +1,7 @@
 import json
 import re
 from typing import Dict, Any, List
-from backend.app.services.bytez import bytez_service
+from backend.app.services.openrouter import openrouter_service
 from backend.app.services.supabase import supabase_service
 from backend.app.models.domain import UserVibe
 
@@ -38,7 +38,7 @@ class FoundryService:
         Generate the JSON now.
         """
         
-        raw_response = bytez_service.generate_text(system_prompt, temperature=0.85)
+        raw_response = openrouter_service.generate_text(system_prompt, temperature=0.85)
         clean_json = re.sub(r"```json|```", "", raw_response).strip()
         
         try:
@@ -69,7 +69,7 @@ class FoundryService:
         ["Memory 1...", "Memory 2...", "Memory 3...", "Memory 4...", "Memory 5..."]
         """
         
-        raw_response = bytez_service.generate_text(system_prompt, temperature=0.8)
+        raw_response = openrouter_service.generate_text(system_prompt, temperature=0.8)
         clean_json = re.sub(r"```json|```", "", raw_response).strip()
         
         try:
@@ -89,8 +89,8 @@ class FoundryService:
              return
 
         for memory_text in memories:
-            # Generate Vector Embedding using Bytez API
-            vector = bytez_service.embed_text(memory_text)
+            # Generate Vector Embedding using OpenRouter
+            vector = openrouter_service.embed_text(memory_text)
             
             # Insert into database
             client.table("memories").insert({

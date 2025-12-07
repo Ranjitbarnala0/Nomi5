@@ -3,7 +3,7 @@ from fastapi import APIRouter
 from pydantic import BaseModel
 from typing import Dict, Any
 from backend.app.services.supabase import supabase_service
-from backend.app.services.bytez import bytez_service
+from backend.app.services.openrouter import openrouter_service
 
 router = APIRouter()
 
@@ -52,7 +52,7 @@ async def run_diagnostics():
     # 2. Check AI Engine (Nvidia)
     try:
         # Simple generation check
-        bytez_service.generate_text("test", max_tokens=1)
+        openrouter_service.generate_text("test", max_tokens=1)
         ai_status = "operational"
     except Exception as e:
         ai_status = f"error: {str(e)}"
