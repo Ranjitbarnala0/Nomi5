@@ -71,10 +71,13 @@ async def send_message(request: ChatRequest):
                 )
                 
                 # Update simulation with new data
-                client.table("simulations").update({
+                print(f"[CHAT] Updating simulation {sim_id} to calibrated")
+                update_result = client.table("simulations").update({
                     "is_calibrated": True,
+                    "status": "ACTIVE",
                     "opening_scenario": genesis_result['opening_scenario']
                 }).eq("id", sim_id).execute()
+                print(f"[CHAT] Update result: {update_result.data}")
                 
                 # Create the transition narrative
                 persona_name = genesis_result['persona']['name']
