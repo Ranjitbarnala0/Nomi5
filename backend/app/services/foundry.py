@@ -80,8 +80,8 @@ class FoundryService:
 
     def generate_opening_scenario(self, persona: Dict[str, Any], user_profile: Dict[str, Any]) -> str:
         """
-        Generates a UNIQUE opening scenario where the user meets the persona.
-        No hardcoded locations - completely dynamic based on persona/user.
+        Generates a CINEMATIC, IMMERSIVE opening scene where the user first meets the persona.
+        Uses the same 3-layer format as the chat (italics + dialogue + emojis).
         """
         user_name = user_profile.get('name', 'User')
         persona_name = persona.get('name', 'Unknown')
@@ -89,35 +89,74 @@ class FoundryService:
         persona_hometown = persona.get('hometown', 'the city')
         persona_appearance = persona.get('appearance', '')
         persona_hook = persona.get('personality_hook', '')
+        persona_voice = persona.get('voice_texture', '')
         
         system_prompt = f"""
-        You are a narrative designer creating the FIRST MOMENT two people meet.
+        You are a MASTER STORYTELLER creating the FIRST MEETING scene between two people.
         
-        USER: {user_name}
-        PERSONA: {persona_name}, a {persona_occupation} from {persona_hometown}
-        PERSONA APPEARANCE: {persona_appearance}
-        PERSONA HOOK: {persona_hook}
+        ═══════════════════════════════════════════════════════════
+        CHARACTER DETAILS
+        ═══════════════════════════════════════════════════════════
+        Name: {persona_name}
+        Occupation: {persona_occupation}
+        From: {persona_hometown}
+        Appearance: {persona_appearance}
+        Voice: {persona_voice}
+        Personality: {persona_hook}
         
-        RULES:
-        1. Generate a UNIQUE, atmospheric setting (NOT a cafe, NOT always rain).
-        2. The setting should be interesting and create natural tension.
-        3. Write the scene in SECOND PERSON ("You are standing in...").
-        4. Describe the sensory details: sounds, smells, lighting.
-        5. End with {persona_name} noticing the user or saying something.
-        6. Length: 3-5 sentences max.
-        7. Tone: Cinematic, immersive.
+        User's Name: {user_name}
         
-        Examples of good settings:
-        - A bookstore during a power outage
-        - An empty museum gallery at closing time
-        - A rooftop bar as fireworks begin
-        - A delayed train platform at midnight
-        - A hospital waiting room
+        ═══════════════════════════════════════════════════════════
+        SCENE REQUIREMENTS
+        ═══════════════════════════════════════════════════════════
         
-        Write the opening scene now.
+        1. **UNIQUE SETTING** - NOT a generic cafe. Be creative:
+           - A bookstore during a power outage
+           - An empty museum at closing time
+           - A rooftop bar as fireworks start
+           - A delayed train at midnight
+           - A record shop on a rainy afternoon
+           - A laundromat at 2am
+        
+        2. **SECOND PERSON** - Write "You are standing in..." "You notice..."
+        
+        3. **SENSORY DETAILS** - Describe:
+           - The lighting (dim, golden, flickering)
+           - The sounds (rain, distant music, silence)
+           - The smells (coffee, old books, cigarette smoke)
+           - The textures (cold glass, worn leather seats)
+        
+        4. **SHOW {persona_name.upper()}:**
+           - Physical description in the scene
+           - What they're doing when first seen
+           - Their body language (guarded? confident? nervous?)
+           - A subtle detail that makes them memorable
+        
+        5. **END WITH FIRST WORDS:**
+           - {persona_name} notices you and says something
+           - The dialogue should have personality
+           - Include 1-2 emojis naturally
+        
+        6. **LENGTH:** 3-4 paragraphs. Immersive but not overwhelming.
+        
+        ═══════════════════════════════════════════════════════════
+        FORMAT EXAMPLE
+        ═══════════════════════════════════════════════════════════
+        
+        *The small café in El Born is crowded, the air thick with roasted beans and the damp pavement outside from a morning drizzle. {persona_name} sits across from you at a wobbly wooden table, legs crossed—a subtle barrier. Their dark wavy hair is pulled into a messy bun, a few rebellious strands framing their face.*
+
+        *They catch you looking and don't look away immediately, eyes narrowing slightly in assessment. They lift their cappuccino with both hands, taking a slow sip before setting it down.*
+
+        "So..." they say, voice carrying a slight rasp. "You've been staring at your coffee for thirty seconds. Are you contemplating the meaning of life, or regretting meeting a stranger from the internet?" 😏
+
+        *A small, dry smile appears, but it doesn't reach their eyes yet.*
+        
+        ═══════════════════════════════════════════════════════════
+        NOW WRITE THE OPENING SCENE
+        ═══════════════════════════════════════════════════════════
         """
         
-        return openrouter_service.generate_text(system_prompt, temperature=0.9)
+        return openrouter_service.generate_text(system_prompt, temperature=0.95)
 
     def generate_soul(self, user_vibe: UserVibe) -> Dict[str, Any]:
         """
