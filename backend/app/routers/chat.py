@@ -64,9 +64,10 @@ async def send_message(request: ChatRequest):
             
             # Check if calibration just completed
             if result['is_calibrated']:
-                # Generate the persona and opening scenario
-                genesis_result = foundry_service.create_simulation_from_calibration(
-                    result['user_profile']
+                # Generate the persona and opening scenario for THIS simulation
+                genesis_result = foundry_service.genesis_for_simulation(
+                    simulation_id=sim_id,
+                    user_profile=result['user_profile']
                 )
                 
                 # Update simulation with new data

@@ -224,6 +224,58 @@ class FoundryService:
                 "embedding": vector
             }).execute()
 
+    def genesis_for_simulation(
+        self,
+        simulation_id: str,
+        user_profile: Dict[str, Any]
+    ) -> Dict[str, Any]:
+        """
+        Generates persona and opening scenario for an EXISTING simulation.
+        This is used after calibration completes to populate the simulation
+        with persona_core, fluid_states, and memories.
+        """
+        client = supabase_service.get_client()
+        if not client:
+            raise RuntimeError("Supabase client is not available.")
+
+        # 1. Generate the unique persona
+        persona = self.generate_dynamic_persona(user_profile)
+        
+        # 2. Generate the opening scenario
+        opening_scenario = self.generate_opening_scenario(persona, user_profile)
+        
+        # 3. Create Persona Core for this simulation
+        client.table("persona_core").insert({
+            "simulation_id": simulation_id,
+            "name": persona.get("name", "Unknown"),
+            "appearance": persona.get("appearance", ""),
+            "voice_texture": persona.get("voice_texture", ""),
+            "core_wound": persona.get("core_wound", ""),
+            "defense_mechanism": persona.get("defense_mechanism", ""),
+            "attachment_style": persona.get("attachment_style", "Avoidant"),
+            "values_matrix": persona.get("values_matrix", {}),
+            "sexual_orientation": persona.get("sexual_orientation", "Unknown")
+        }).execute()
+        
+        # 4. Initialize Fluid State
+        client.table("fluid_states").insert({
+            "simulation_id": simulation_id,
+            "emotional_bank_account": 0,
+            "arousal_level": 0,
+            "intellectual_boredom": 0,
+            "current_craving": "Neutral"
+        }).execute()
+        
+        # 5. Generate and embed backstory
+        memories = self.generate_backstory(persona)
+        self.embed_and_store_memories(simulation_id, memories)
+        
+        return {
+            "simulation_id": simulation_id,
+            "persona": persona,
+            "opening_scenario": opening_scenario
+        }
+
     def create_simulation_from_calibration(
         self, 
         user_profile: Dict[str, Any]

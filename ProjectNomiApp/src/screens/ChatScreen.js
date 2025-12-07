@@ -14,66 +14,126 @@ import { useSimulation } from '../core/context';
 import { THEME } from '../styles/theme';
 
 export default function ChatScreen({ navigation }) {
-    const { simulationId, persona } = useSimulation();
+    const { simulationId, setSimulationId, logout } = useSimulation();
+
+    // Core State
     const [messages, setMessages] = useState([]);
     const [inputText, setInputText] = useState('');
     const [sending, setSending] = useState(false);
     const [typing, setTyping] = useState(false);
+    const [loading, setLoading] = useState(true);
 
-    // New State for Permadeath
-    const [simStatus, setSimStatus] = useState('ACTIVE'); // ACTIVE, BROKEN
-    const [trustScore, setTrustScore] = useState(0);
+    // Calibration State
+    const [isCalibrated, setIsCalibrated] = useState(false);
+    const [personaName, setPersonaName] = useState('The System');
+
+    // Status State
+    const [simStatus, setSimStatus] = useState('ACTIVE');
     const [resetting, setResetting] = useState(false);
 
     const flatListRef = useRef();
-    const STORAGE_KEY = `@chat_history_${simulationId}`;
+    const currentSimId = useRef(simulationId);
 
     useEffect(() => {
-        loadHistory();
-        syncStatus(); // Check server immediately
+        initializeChat();
     }, []);
 
     useEffect(() => {
-        saveHistory();
+        if (messages.length > 0 && currentSimId.current) {
+            saveHistory();
+        }
     }, [messages]);
+
+    const initializeChat = async () => {
+        try {
+            setLoading(true);
+
+            if (simulationId) {
+                // Existing simulation - load history
+                currentSimId.current = simulationId;
+                await loadHistory();
+                await syncStatus();
+            } else {
+                // NEW USER - Start fresh with System calibration
+                await startNewSimulation();
+            }
+        } catch (error) {
+            console.error('Init error:', error);
+            setMessages([{
+                id: 'error',
+                text: 'Error connecting. Please restart the app.',
+                type: 'system'
+            }]);
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    const startNewSimulation = async () => {
+        try {
+            // Call backend to start new calibration
+            const response = await NomiService.startNewSimulation();
+
+            if (response.new_state?.simulation_id) {
+                const newSimId = response.new_state.simulation_id;
+                currentSimId.current = newSimId;
+
+                // Save to context
+                await setSimulationId(newSimId);
+
+                // Set initial System message
+                setMessages([{
+                    id: 'system_init',
+                    text: response.reply_text,
+                    type: 'ai'
+                }]);
+
+                setIsCalibrated(false);
+                setPersonaName('The System');
+            }
+        } catch (error) {
+            console.error('Start simulation error:', error);
+            setMessages([{
+                id: 'error',
+                text: 'Could not connect to The System. Please check your connection and restart.',
+                type: 'system'
+            }]);
+        }
+    };
 
     const loadHistory = async () => {
         try {
+            const STORAGE_KEY = `@chat_history_${currentSimId.current}`;
             const stored = await AsyncStorage.getItem(STORAGE_KEY);
+
             if (stored) {
                 setMessages(JSON.parse(stored));
-            } else {
-                setMessages([{
-                    id: 'init',
-                    text: `Connection established with ${persona?.name || 'Subject'}.`,
-                    type: 'system'
-                }]);
             }
         } catch (e) {
-            console.error(e);
+            console.error('Load history error:', e);
         }
     };
 
     const saveHistory = async () => {
         try {
-            if (messages.length > 0) {
+            if (currentSimId.current && messages.length > 0) {
+                const STORAGE_KEY = `@chat_history_${currentSimId.current}`;
                 await AsyncStorage.setItem(STORAGE_KEY, JSON.stringify(messages));
             }
         } catch (e) {
-            console.error(e);
+            console.error('Save history error:', e);
         }
     };
 
-    // Sync with Server to check for Permadeath/Ghosting
     const syncStatus = async () => {
         try {
             const sims = await NomiService.listSimulations();
-            const mySim = sims.find(s => s.id === simulationId);
+            const mySim = sims.find(s => s.id === currentSimId.current);
+
             if (mySim) {
                 setSimStatus(mySim.status);
-                setTrustScore(mySim.emotional_bank_account);
+                setIsCalibrated(mySim.is_calibrated || false);
 
-                // If broken, ensure we show the breakup status locally
                 if (mySim.status === 'BROKEN' && simStatus !== 'BROKEN') {
                     setMessages(prev => [...prev, {
                         id: 'sys_break',
@@ -89,54 +149,70 @@ export default function ChatScreen({ navigation }) {
 
     const handleSend = async () => {
         if (!inputText.trim() || sending) return;
-
-        // Guard Clause: Cannot send if broken
         if (simStatus === 'BROKEN') return;
 
-        const userMsg = { id: Date.now().toString(), text: inputText, type: 'user' };
+        const userMsg = {
+            id: Date.now().toString(),
+            text: inputText,
+            type: 'user'
+        };
 
-        // Optimistic Update: Show message immediately
+        // Optimistic Update
         setMessages(prev => [...prev, userMsg]);
         setInputText('');
         setSending(true);
-        setTyping(true); // Show typing indicator
+        setTyping(true);
 
         try {
-            const response = await NomiService.sendMessage(simulationId, userMsg.text);
+            const response = await NomiService.sendMessage(
+                currentSimId.current,
+                userMsg.text
+            );
 
-            // Hide typing indicator
             setTyping(false);
 
-            // Update our local state based on the response logic
-            if (response.new_state) {
-                // If the trust drops too low during this chat, update status
-                if (response.new_state.emotional_bank_account <= -100) {
-                    setSimStatus('BROKEN');
+            // Check if calibration just completed
+            if (response.is_calibrated && !isCalibrated) {
+                setIsCalibrated(true);
+
+                if (response.persona_name) {
+                    setPersonaName(response.persona_name);
                 }
             }
 
+            // Update status
+            if (response.new_state?.emotional_bank_account <= -100) {
+                setSimStatus('BROKEN');
+            }
+
+            // Add response messages
             const newMessages = [];
+
             if (response.narrative_bridge) {
                 newMessages.push({
-                    id: Date.now().toString() + '_sys',
+                    id: Date.now().toString() + '_narr',
                     text: response.narrative_bridge,
                     type: 'system'
                 });
             }
 
-            newMessages.push({
-                id: Date.now().toString() + '_ai',
-                text: response.reply_text,
-                type: 'ai'
-            });
+            if (response.reply_text) {
+                newMessages.push({
+                    id: Date.now().toString() + '_ai',
+                    text: response.reply_text,
+                    type: 'ai'
+                });
+            }
 
             setMessages(prev => [...prev, ...newMessages]);
 
         } catch (error) {
             setTyping(false);
+            console.error('Send error:', error);
+
             setMessages(prev => [...prev, {
                 id: Date.now().toString(),
-                text: "Error: Connection lost.",
+                text: "Error: Connection lost. Tap to retry.",
                 type: 'system'
             }]);
         } finally {
@@ -144,10 +220,31 @@ export default function ChatScreen({ navigation }) {
         }
     };
 
+    const handleNewPersona = async () => {
+        Alert.alert(
+            "Start New Reality?",
+            "This will create a completely new persona. Your current chat will be saved.",
+            [
+                { text: "Cancel", style: "cancel" },
+                {
+                    text: "New Persona",
+                    style: "destructive",
+                    onPress: async () => {
+                        await logout();
+                        setMessages([]);
+                        setIsCalibrated(false);
+                        setPersonaName('The System');
+                        await startNewSimulation();
+                    }
+                }
+            ]
+        );
+    };
+
     const handleTimeMachine = async () => {
         Alert.alert(
             "Reset Timeline?",
-            "This will wipe all memories of your relationship. She will forget everything. Are you sure? (Cost: 1 Credit)",
+            "This will wipe all memories. They will forget everything.",
             [
                 { text: "Cancel", style: "cancel" },
                 {
@@ -156,21 +253,18 @@ export default function ChatScreen({ navigation }) {
                     onPress: async () => {
                         setResetting(true);
                         try {
-                            // 1. Call Backend Reset
-                            await NomiService.resetSimulation(simulationId);
+                            await NomiService.resetSimulation(currentSimId.current);
 
-                            // 2. Wipe Local History
+                            const STORAGE_KEY = `@chat_history_${currentSimId.current}`;
                             await AsyncStorage.removeItem(STORAGE_KEY);
+
                             setMessages([{
                                 id: Date.now().toString(),
                                 text: "TIMELINE RESET. CONNECTION RE-ESTABLISHED.",
                                 type: 'system'
                             }]);
 
-                            // 3. Reset State
                             setSimStatus('ACTIVE');
-                            setTrustScore(0);
-
                         } catch (e) {
                             Alert.alert("Reset Failed", "Could not connect to the Time Machine.");
                         } finally {
@@ -182,24 +276,61 @@ export default function ChatScreen({ navigation }) {
         );
     };
 
+    const handleSettings = () => {
+        Alert.alert(
+            "Settings",
+            null,
+            [
+                {
+                    text: "New Persona",
+                    onPress: handleNewPersona
+                },
+                {
+                    text: "Reset Timeline",
+                    onPress: handleTimeMachine,
+                    style: "destructive"
+                },
+                {
+                    text: "View All Simulations",
+                    onPress: () => navigation.navigate('Simulations')
+                },
+                { text: "Cancel", style: "cancel" }
+            ]
+        );
+    };
+
+    if (loading) {
+        return (
+            <SafeAreaView style={styles.container}>
+                <View style={styles.loadingContainer}>
+                    <ActivityIndicator size="large" color={THEME.colors.primary} />
+                    <Text style={styles.loadingText}>Connecting to The System...</Text>
+                </View>
+            </SafeAreaView>
+        );
+    }
+
     return (
         <SafeAreaView style={styles.container}>
             {/* Header */}
             <View style={styles.header}>
-                <View>
-                    <Text style={styles.headerTitle}>{persona?.name || 'Unknown'}</Text>
+                <View style={styles.headerLeft}>
+                    <Text style={styles.headerTitle}>{personaName}</Text>
                     <Text style={[
                         styles.headerStatus,
-                        simStatus === 'BROKEN' ? styles.statusBroken : styles.statusActive
+                        simStatus === 'BROKEN' ? styles.statusBroken :
+                            isCalibrated ? styles.statusActive : styles.statusCalibrating
                     ]}>
-                        {simStatus === 'BROKEN' ? 'DISCONNECTED' : 'Online'}
+                        {simStatus === 'BROKEN' ? 'DISCONNECTED' :
+                            isCalibrated ? 'Online' : 'Calibrating...'}
                     </Text>
                 </View>
+
                 <TouchableOpacity
-                    style={styles.menuButton}
-                    onPress={() => navigation.navigate('Simulations')}
+                    style={styles.settingsButton}
+                    onPress={handleSettings}
                 >
-                    <Ionicons name="albums-outline" size={24} color={THEME.colors.textDim} />
+                    <Ionicons name="settings-outline" size={24} color={THEME.colors.textDim} />
                 </TouchableOpacity>
             </View>
 
@@ -208,18 +339,24 @@ export default function ChatScreen({ navigation }) {
                 ref={flatListRef}
                 data={messages}
                 keyExtractor={item => item.id}
-                renderItem={({ item }) => <MessageBubble text={item.text} type={item.type} />}
+                renderItem={({ item }) => (
+                    <MessageBubble
+                        text={item.text}
+                        type={item.type}
+                    />
+                )}
                 contentContainerStyle={styles.listContent}
                 onContentSizeChange={() => flatListRef.current?.scrollToEnd({ animated: true })}
-                onLayout={() => flatListRef.current?.scrollToEnd({ animated: true })}
                 ListFooterComponent={typing ? (
                     <View style={styles.typingContainer}>
-                        <Text style={styles.typingText}>{persona?.name || 'Nomi'} is typing...</Text>
+                        <Text style={styles.typingText}>
+                            {isCalibrated ? personaName : 'The System'} is typing...
+                        </Text>
                     </View>
                 ) : null}
             />
 
-            {/* Input Area OR Permadeath UI */}
+            {/* Input Area */}
             <KeyboardAvoidingView
                 behavior={Platform.OS === "ios" ? "padding" : "height"}
                 keyboardVerticalOffset={Platform.OS === "ios" ? 10 : 0}
@@ -228,7 +365,6 @@ export default function ChatScreen({ navigation }) {
                     <View style={styles.brokenContainer}>
                         <Text style={styles.brokenText}>RELATIONSHIP SEVERED</Text>
                         <Text style={styles.brokenSubText}>Trust dropped below critical levels.</Text>
-
                         <TouchableOpacity
                             style={styles.resetButton}
                             onPress={handleTimeMachine}
@@ -249,11 +385,13 @@ export default function ChatScreen({ navigation }) {
                             placeholderTextColor={THEME.colors.textDim}
                             value={inputText}
                             onChangeText={setInputText}
+                            multiline
+                            maxLength={500}
                         />
                         <TouchableOpacity
                             style={[styles.sendButton, !inputText.trim() && styles.disabled]}
                             onPress={handleSend}
-                            disabled={!inputText.trim()}
+                            disabled={!inputText.trim() || sending}
                         >
                             {sending ? (
                                 <ActivityIndicator size="small" color="#fff" />
@@ -273,6 +411,16 @@ const styles = StyleSheet.create({
         flex: 1,
         backgroundColor: THEME.colors.background,
     },
+    loadingContainer: {
+        flex: 1,
+        justifyContent: 'center',
+        alignItems: 'center',
+    },
+    loadingText: {
+        color: THEME.colors.textDim,
+        marginTop: 15,
+        fontSize: 14,
+    },
     header: {
         flexDirection: 'row',
         justifyContent: 'space-between',
@@ -282,6 +430,9 @@ const styles = StyleSheet.create({
         borderBottomWidth: 1,
         borderBottomColor: '#222',
         backgroundColor: THEME.colors.surface,
+    },
+    headerLeft: {
+        flex: 1,
     },
     headerTitle: {
         color: THEME.colors.text,
@@ -294,6 +445,10 @@ const styles = StyleSheet.create({
     },
     statusActive: { color: '#4CAF50' },
     statusBroken: { color: '#F44336' },
+    statusCalibrating: { color: THEME.colors.primary },
+    settingsButton: {
+        padding: 8,
+    },
     listContent: {
         paddingHorizontal: THEME.spacing.md,
         paddingBottom: THEME.spacing.lg,
@@ -308,8 +463,6 @@ const styles = StyleSheet.create({
         fontStyle: 'italic',
         fontSize: 12,
     },
-
-    // Normal Input Styles
     inputContainer: {
         flexDirection: 'row',
         alignItems: 'flex-end',
@@ -324,10 +477,10 @@ const styles = StyleSheet.create({
         color: THEME.colors.text,
         borderRadius: THEME.borderRadius.lg,
         paddingHorizontal: 15,
-        paddingTop: 10,
-        paddingBottom: 10,
+        paddingTop: 12,
+        paddingBottom: 12,
         marginRight: 10,
-        maxHeight: 100,
+        maxHeight: 120,
         fontSize: 16,
     },
     sendButton: {
@@ -342,11 +495,9 @@ const styles = StyleSheet.create({
         backgroundColor: THEME.colors.secondary,
         opacity: 0.5,
     },
-
-    // Permadeath Styles
     brokenContainer: {
         padding: 30,
-        backgroundColor: '#1a0000', // Deep red/black
+        backgroundColor: '#1a0000',
         borderTopWidth: 1,
         borderTopColor: '#ff3333',
         alignItems: 'center',
