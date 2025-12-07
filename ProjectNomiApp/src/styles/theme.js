@@ -1,44 +1,22 @@
 
 import { StyleSheet } from 'react-native';
-import { CONFIG } from '../core/config';
 
-export const globalStyles = StyleSheet.create({
-    container: {
-        flex: 1,
-        backgroundColor: CONFIG.THEME.BACKGROUND,
-        paddingHorizontal: 20,
+export const THEME = {
+    colors: {
+        background: '#0F0F13',
+        surface: '#1E1E24',
+        primary: '#6C63FF', // Modern Purple/Blue
+        secondary: '#2A2A35',
+        text: '#FFFFFF',
+        textDim: 'rgba(255,255,255,0.6)',
+        userBubble: '#6C63FF',
+        nomiBubble: '#2A2A35',
+        error: '#FF453A',
     },
-    text: {
-        color: CONFIG.THEME.TEXT_PRIMARY,
-        fontSize: 16,
-        fontFamily: 'System', // Will replace with custom font later if needed
+    spacing: {
+        xs: 4, sm: 8, md: 16, lg: 24, xl: 32
     },
-    header: {
-        fontSize: 24,
-        fontWeight: 'bold',
-        color: CONFIG.THEME.ACCENT,
-        marginBottom: 20,
-        marginTop: 60,
-    },
-    input: {
-        backgroundColor: '#1a1a1a',
-        color: CONFIG.THEME.TEXT_PRIMARY,
-        padding: 15,
-        borderRadius: 8,
-        borderWidth: 1,
-        borderColor: '#333',
-        marginBottom: 15,
-    },
-    button: {
-        backgroundColor: CONFIG.THEME.ACCENT,
-        padding: 15,
-        borderRadius: 8,
-        alignItems: 'center',
-        justifyContent: 'center',
-    },
-    buttonText: {
-        color: CONFIG.THEME.BACKGROUND,
-        fontWeight: 'bold',
-        fontSize: 16,
+    borderRadius: {
+        sm: 8, md: 16, lg: 24, xl: 99
     }
-});
+};

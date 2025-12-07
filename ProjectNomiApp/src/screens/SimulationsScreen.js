@@ -7,7 +7,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { NomiService } from '../services/nomi';
 import { useSimulation } from '../core/context';
-import { CONFIG } from '../core/config';
+import { THEME } from '../styles/theme';
 
 export default function SimulationsScreen({ navigation }) {
     // Aliasing context methods to match the requested variable names while maintaining compatibility with context.js
@@ -33,9 +33,6 @@ export default function SimulationsScreen({ navigation }) {
     const handleSwitch = async (sim) => {
         // 1. Update Global Context
         await registerSimulation(sim.id /*, { name: sim.name, avatar: sim.avatar } */);
-        // Note: ensure setSimulationId (login) can handle just ID or if it needs object. 
-        // Context logic was: login = async (id) => { await AsyncStorage.setItem('simulation_id', id); setSimulationId(id); }
-        // It ignores second arg, which is fine for now as we just store ID.
 
         // 2. Go back to Chat (Context update will trigger re-render of content)
         navigation.navigate('Chat');
@@ -76,14 +73,14 @@ export default function SimulationsScreen({ navigation }) {
         <SafeAreaView style={styles.container}>
             <View style={styles.header}>
                 <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
-                    <Ionicons name="arrow-back" size={24} color="#fff" />
+                    <Ionicons name="arrow-back" size={24} color={THEME.colors.text} />
                 </TouchableOpacity>
                 <Text style={styles.headerTitle}>YOUR UNIVERSES</Text>
                 <View style={{ width: 24 }} />
             </View>
 
             {loading ? (
-                <ActivityIndicator size="large" color="#fff" style={{ marginTop: 50 }} />
+                <ActivityIndicator size="large" color={THEME.colors.primary} style={{ marginTop: 50 }} />
             ) : (
                 <FlatList
                     data={sims}
@@ -97,7 +94,7 @@ export default function SimulationsScreen({ navigation }) {
             )}
 
             <TouchableOpacity style={styles.fab} onPress={handleNew}>
-                <Ionicons name="add" size={30} color="#000" />
+                <Ionicons name="add" size={30} color="#fff" />
             </TouchableOpacity>
         </SafeAreaView>
     );
@@ -106,29 +103,30 @@ export default function SimulationsScreen({ navigation }) {
 const styles = StyleSheet.create({
     container: {
         flex: 1,
-        backgroundColor: CONFIG.THEME.BACKGROUND,
+        backgroundColor: THEME.colors.background,
     },
     header: {
         flexDirection: 'row',
         alignItems: 'center',
         justifyContent: 'space-between',
-        padding: 20,
+        padding: THEME.spacing.lg,
         borderBottomWidth: 1,
         borderBottomColor: '#222',
+        backgroundColor: THEME.colors.surface,
     },
     headerTitle: {
-        color: '#fff',
+        color: THEME.colors.text,
         fontSize: 16,
         fontWeight: 'bold',
         letterSpacing: 2,
     },
     list: {
-        padding: 20,
+        padding: THEME.spacing.lg,
     },
     card: {
-        backgroundColor: '#1a1a1a',
-        padding: 20,
-        borderRadius: 12,
+        backgroundColor: THEME.colors.surface,
+        padding: THEME.spacing.lg,
+        borderRadius: THEME.borderRadius.lg,
         marginBottom: 15,
         borderWidth: 1,
         borderColor: '#333',
@@ -143,32 +141,32 @@ const styles = StyleSheet.create({
         marginBottom: 10,
     },
     name: {
-        color: '#fff',
+        color: THEME.colors.text,
         fontSize: 18,
         fontWeight: 'bold',
     },
     textBroken: {
-        color: '#ff4444',
+        color: THEME.colors.error,
     },
     status: {
         fontSize: 12,
         fontWeight: 'bold',
     },
     statusActive: { color: '#4CAF50' },
-    statusBroken: { color: '#F44336' },
+    statusBroken: { color: THEME.colors.error },
     detail: {
-        color: '#aaa',
+        color: THEME.colors.textDim,
         marginBottom: 5,
     },
     positive: { color: '#4CAF50' },
-    negative: { color: '#F44336' },
+    negative: { color: THEME.colors.error },
     id: {
         color: '#444',
         fontSize: 10,
-        fontFamily: 'monospace',
+        fontFamily: Platform.OS === 'ios' ? 'Courier' : 'monospace',
     },
     emptyText: {
-        color: '#666',
+        color: THEME.colors.textDim,
         textAlign: 'center',
         marginTop: 50,
     },
@@ -179,13 +177,13 @@ const styles = StyleSheet.create({
         width: 60,
         height: 60,
         borderRadius: 30,
-        backgroundColor: '#fff',
+        backgroundColor: THEME.colors.primary,
         alignItems: 'center',
         justifyContent: 'center',
         elevation: 5,
         shadowColor: '#000',
-        shadowOffset: { width: 0, height: 2 },
+        shadowOffset: { width: 0, height: 4 },
         shadowOpacity: 0.3,
-        shadowRadius: 3,
+        shadowRadius: 5,
     }
 });

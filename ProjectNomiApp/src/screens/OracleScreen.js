@@ -6,7 +6,7 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { NomiService } from '../services/nomi';
-import { CONFIG } from '../core/config';
+import { THEME } from '../styles/theme';
 
 export default function OracleScreen({ navigation }) {
     const [scenario, setScenario] = useState('');
@@ -48,7 +48,7 @@ export default function OracleScreen({ navigation }) {
     if (loading) {
         return (
             <View style={styles.center}>
-                <ActivityIndicator size="large" color="#fff" />
+                <ActivityIndicator size="large" color={THEME.colors.primary} />
                 <Text style={styles.loadingText}>Initializing Simulation...</Text>
             </View>
         );
@@ -69,9 +69,10 @@ export default function OracleScreen({ navigation }) {
                     <TextInput
                         style={styles.input}
                         placeholder="What do you do?"
-                        placeholderTextColor="#666"
+                        placeholderTextColor={THEME.colors.textDim}
                         value={response}
                         onChangeText={setResponse}
+                        multiline
                     />
 
                     <TouchableOpacity
@@ -80,7 +81,7 @@ export default function OracleScreen({ navigation }) {
                         disabled={!response.trim() || analyzing}
                     >
                         {analyzing ? (
-                            <ActivityIndicator color="#000" />
+                            <ActivityIndicator color={THEME.colors.text} />
                         ) : (
                             <Text style={styles.buttonText}>INITIALIZE</Text>
                         )}
@@ -94,11 +95,11 @@ export default function OracleScreen({ navigation }) {
 const styles = StyleSheet.create({
     container: {
         flex: 1,
-        backgroundColor: '#0a0a0a',
+        backgroundColor: THEME.colors.background,
     },
     center: {
         flex: 1,
-        backgroundColor: '#0a0a0a',
+        backgroundColor: THEME.colors.background,
         alignItems: 'center',
         justifyContent: 'center',
     },
@@ -107,56 +108,56 @@ const styles = StyleSheet.create({
         justifyContent: 'space-between',
     },
     content: {
-        padding: 24,
+        padding: THEME.spacing.lg,
         marginTop: 20,
     },
     loadingText: {
-        color: '#666',
+        color: THEME.colors.textDim,
         marginTop: 20,
-        fontFamily: Platform.OS === 'ios' ? 'Courier' : 'monospace',
     },
     systemLabel: {
-        color: CONFIG.THEME.SYSTEM_MSG,
+        color: THEME.colors.primary,
         fontSize: 12,
         letterSpacing: 2,
         marginBottom: 20,
         fontWeight: 'bold',
     },
     scenarioText: {
-        color: '#fff',
+        color: THEME.colors.text,
         fontSize: 22,
         lineHeight: 34,
         fontFamily: Platform.OS === 'ios' ? 'Georgia' : 'serif',
     },
     inputContainer: {
-        padding: 24,
-        backgroundColor: '#111',
+        padding: THEME.spacing.lg,
+        backgroundColor: THEME.colors.surface,
         borderTopWidth: 1,
         borderTopColor: '#222',
     },
     input: {
-        backgroundColor: '#1a1a1a',
-        color: '#fff',
+        backgroundColor: THEME.colors.secondary,
+        color: THEME.colors.text,
         padding: 20,
-        borderRadius: 12,
+        borderRadius: THEME.borderRadius.lg,
         fontSize: 16,
-        minHeight: 100,
+        minHeight: 120,
         textAlignVertical: 'top',
         borderWidth: 1,
         borderColor: '#333',
     },
     button: {
-        backgroundColor: '#fff',
+        backgroundColor: THEME.colors.primary,
         marginTop: 20,
         padding: 18,
-        borderRadius: 30,
+        borderRadius: THEME.borderRadius.xl,
         alignItems: 'center',
     },
     buttonDisabled: {
-        backgroundColor: '#333',
+        backgroundColor: THEME.colors.secondary,
+        opacity: 0.5,
     },
     buttonText: {
-        color: '#000',
+        color: '#fff',
         fontWeight: 'bold',
         letterSpacing: 1,
     }

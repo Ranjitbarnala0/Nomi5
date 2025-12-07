@@ -11,13 +11,14 @@ import { Ionicons } from '@expo/vector-icons';
 import MessageBubble from '../components/MessageBubble';
 import { NomiService } from '../services/nomi';
 import { useSimulation } from '../core/context';
-import { CONFIG } from '../core/config';
+import { THEME } from '../styles/theme';
 
 export default function ChatScreen({ navigation }) {
     const { simulationId, persona } = useSimulation();
     const [messages, setMessages] = useState([]);
     const [inputText, setInputText] = useState('');
     const [sending, setSending] = useState(false);
+    const [typing, setTyping] = useState(false);
 
     // New State for Permadeath
     const [simStatus, setSimStatus] = useState('ACTIVE'); // ACTIVE, BROKEN
@@ -94,12 +95,17 @@ export default function ChatScreen({ navigation }) {
 
         const userMsg = { id: Date.now().toString(), text: inputText, type: 'user' };
 
+        // Optimistic Update: Show message immediately
         setMessages(prev => [...prev, userMsg]);
         setInputText('');
         setSending(true);
+        setTyping(true); // Show typing indicator
 
         try {
             const response = await NomiService.sendMessage(simulationId, userMsg.text);
+
+            // Hide typing indicator
+            setTyping(false);
 
             // Update our local state based on the response logic
             if (response.new_state) {
@@ -127,6 +133,7 @@ export default function ChatScreen({ navigation }) {
             setMessages(prev => [...prev, ...newMessages]);
 
         } catch (error) {
+            setTyping(false);
             setMessages(prev => [...prev, {
                 id: Date.now().toString(),
                 text: "Error: Connection lost.",
@@ -185,14 +192,14 @@ export default function ChatScreen({ navigation }) {
                         styles.headerStatus,
                         simStatus === 'BROKEN' ? styles.statusBroken : styles.statusActive
                     ]}>
-                        {simStatus === 'BROKEN' ? 'DISCONNECTED' : 'Active • Synchronized'}
+                        {simStatus === 'BROKEN' ? 'DISCONNECTED' : 'Online'}
                     </Text>
                 </View>
                 <TouchableOpacity
                     style={styles.menuButton}
                     onPress={() => navigation.navigate('Simulations')}
                 >
-                    <Ionicons name="albums-outline" size={24} color="#aaa" />
+                    <Ionicons name="albums-outline" size={24} color={THEME.colors.textDim} />
                 </TouchableOpacity>
             </View>
 
@@ -205,6 +212,11 @@ export default function ChatScreen({ navigation }) {
                 contentContainerStyle={styles.listContent}
                 onContentSizeChange={() => flatListRef.current?.scrollToEnd({ animated: true })}
                 onLayout={() => flatListRef.current?.scrollToEnd({ animated: true })}
+                ListFooterComponent={typing ? (
+                    <View style={styles.typingContainer}>
+                        <Text style={styles.typingText}>{persona?.name || 'Nomi'} is typing...</Text>
+                    </View>
+                ) : null}
             />
 
             {/* Input Area OR Permadeath UI */}
@@ -234,7 +246,7 @@ export default function ChatScreen({ navigation }) {
                         <TextInput
                             style={styles.input}
                             placeholder="Type a message..."
-                            placeholderTextColor="#666"
+                            placeholderTextColor={THEME.colors.textDim}
                             value={inputText}
                             onChangeText={setInputText}
                         />
@@ -244,9 +256,9 @@ export default function ChatScreen({ navigation }) {
                             disabled={!inputText.trim()}
                         >
                             {sending ? (
-                                <ActivityIndicator size="small" color="#000" />
+                                <ActivityIndicator size="small" color="#fff" />
                             ) : (
-                                <Ionicons name="arrow-up" size={24} color="#000" />
+                                <Ionicons name="arrow-up" size={24} color="#fff" />
                             )}
                         </TouchableOpacity>
                     </View>
@@ -259,20 +271,20 @@ export default function ChatScreen({ navigation }) {
 const styles = StyleSheet.create({
     container: {
         flex: 1,
-        backgroundColor: CONFIG.THEME.BACKGROUND,
+        backgroundColor: THEME.colors.background,
     },
     header: {
         flexDirection: 'row',
         justifyContent: 'space-between',
         alignItems: 'center',
-        paddingHorizontal: 20,
-        paddingVertical: 15,
+        paddingHorizontal: THEME.spacing.md,
+        paddingVertical: THEME.spacing.md,
         borderBottomWidth: 1,
         borderBottomColor: '#222',
-        backgroundColor: '#0f0f0f',
+        backgroundColor: THEME.colors.surface,
     },
     headerTitle: {
-        color: '#fff',
+        color: THEME.colors.text,
         fontSize: 18,
         fontWeight: 'bold',
     },
@@ -282,26 +294,35 @@ const styles = StyleSheet.create({
     },
     statusActive: { color: '#4CAF50' },
     statusBroken: { color: '#F44336' },
-
     listContent: {
-        paddingHorizontal: 15,
-        paddingBottom: 20,
+        paddingHorizontal: THEME.spacing.md,
+        paddingBottom: THEME.spacing.lg,
+        paddingTop: THEME.spacing.md,
+    },
+    typingContainer: {
+        marginLeft: 10,
+        marginBottom: 10,
+    },
+    typingText: {
+        color: THEME.colors.textDim,
+        fontStyle: 'italic',
+        fontSize: 12,
     },
 
     // Normal Input Styles
     inputContainer: {
         flexDirection: 'row',
         alignItems: 'flex-end',
-        padding: 15,
-        backgroundColor: '#0f0f0f',
+        padding: THEME.spacing.md,
+        backgroundColor: THEME.colors.surface,
         borderTopWidth: 1,
         borderTopColor: '#222',
     },
     input: {
         flex: 1,
-        backgroundColor: '#1a1a1a',
-        color: '#fff',
-        borderRadius: 20,
+        backgroundColor: THEME.colors.secondary,
+        color: THEME.colors.text,
+        borderRadius: THEME.borderRadius.lg,
         paddingHorizontal: 15,
         paddingTop: 10,
         paddingBottom: 10,
@@ -313,12 +334,13 @@ const styles = StyleSheet.create({
         width: 45,
         height: 45,
         borderRadius: 22.5,
-        backgroundColor: '#fff',
+        backgroundColor: THEME.colors.primary,
         alignItems: 'center',
         justifyContent: 'center',
     },
     disabled: {
-        backgroundColor: '#444',
+        backgroundColor: THEME.colors.secondary,
+        opacity: 0.5,
     },
 
     // Permadeath Styles

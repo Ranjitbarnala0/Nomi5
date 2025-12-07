@@ -23,7 +23,7 @@
         "foregroundImage": "./assets/adaptive-icon.png",
         "backgroundColor": "#000000"
       },
-      "package": "com.yourname.projectnomi"
+      "package": "com.yourcompany.nomi"
     },
     "web": {
       "favicon": "./assets/favicon.png"
